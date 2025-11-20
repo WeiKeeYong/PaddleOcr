@@ -60,7 +60,7 @@ Take note of the server's IP address and port (default is `8000`).
 1.  Clone this repository or download the `paddleOcr-vl-v5.py` and `requirements.txt` files.
 2.  Install the required Python packages:
     ```bash
-pip install -r requirements.txt
+    pip install -r requirements.txt
     ```
 3.  **Update the vLLM server URL**: Open `paddleOcr-vl-v5.py` and modify the `vl_rec_server_url` to point to the IP address and port of your vLLM server from Step 1.
 
@@ -77,7 +77,7 @@ pip install -r requirements.txt
 
 4.  Run the FastAPI server. It will listen on port `8080` by default.
     ```bash
-uvicorn paddleOcr-vl-v5:app --host 0.0.0.0 --port 8080
+    python paddleOcr-vl-v5.py
     ```
 
 ### Step 3: Configure n8n Workflows
