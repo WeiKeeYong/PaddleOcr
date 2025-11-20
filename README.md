@@ -32,7 +32,49 @@ Here is a high-level overview of the data flow for both ingestion and retrieval:
 *   **CUDA** drivers and toolkit properly installed on the GPU server. (e.g., for cloud GPU setup, [brev.nvidia.com](https://brev.nvidia.com/) is a useful resource for pre-configured environments).
 *   **Python 3.10+** and `pip` for the FastAPI service.
 
-### Step 1: Set up the vLLM PaddleOCR-VL Server
+### Step 1: Database Setup
+
+Before you can use the n8n workflows, you need to set up your PostgreSQL database with the required tables. Connect to your PostgreSQL database and run the following SQL commands.
+
+First, ensure the `pgvector` extension is enabled:
+
+```sql
+-- Enable the pgvector extension
+CREATE EXTENSION IF NOT EXISTS vector;
+```
+
+Next, create the necessary tables for the RAG pipeline, record manager, and chat history:
+
+```sql
+-- Create the table for storing vector embeddings
+-- The vector dimension (1536) is for OpenAI's text-embedding-ada-002 model.
+-- If you use a different embedding model, update the dimension accordingly.
+CREATE TABLE IF NOT EXISTS n8n_kb_vectors (
+    id SERIAL PRIMARY KEY,
+    content TEXT,
+    metadata JSONB,
+    embedding VECTOR(1536)
+);
+
+-- Create the table for the record manager to track processed files
+CREATE TABLE IF NOT EXISTS record_manager (
+    id SERIAL PRIMARY KEY,
+    filename TEXT NOT NULL UNIQUE,
+    hash TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create the table for storing n8n chat history
+CREATE TABLE IF NOT EXISTS n8n_chat_histories (
+    id SERIAL PRIMARY KEY,
+    session_id VARCHAR(255) NOT NULL,
+    message JSONB NOT NULL
+);
+```
+
+After running these commands, make sure your n8n Postgres credentials have the necessary permissions to access and modify these tables.
+
+### Step 2: Set up the vLLM PaddleOCR-VL Server
 
 On your dedicated GPU server, install vLLM and its dependencies.
 
@@ -55,14 +97,14 @@ vllm serve PaddlePaddle/PaddleOCR-VL \
 
 Take note of the server's IP address and port (default is `8000`).
 
-### Step 2: Set up the FastAPI OCR Service
+### Step 3: Set up the FastAPI OCR Service
 
 1.  Clone this repository or download the `paddleOcr-vl-v5.py` and `requirements.txt` files.
 2.  Install the required Python packages:
     ```bash
     pip install -r requirements.txt
     ```
-3.  **Update the vLLM server URL**: Open `paddleOcr-vl-v5.py` and modify the `vl_rec_server_url` to point to the IP address and port of your vLLM server from Step 1.
+3.  **Update the vLLM server URL**: Open `paddleOcr-vl-v5.py` and modify the `vl_rec_server_url` to point to the IP address and port of your vLLM server from Step 2.
 
     ```python
     # paddleOcr-vl-v5.py
@@ -80,12 +122,12 @@ Take note of the server's IP address and port (default is `8000`).
     python paddleOcr-vl-v5.py
     ```
 
-### Step 3: Configure n8n Workflows
+### Step 4: Configure n8n Workflows
 
 1.  **Import Workflows**: Import both `n8n-PDF2MD2Vector.json` and `n8n-AI Agent with Vectors.json` into your n8n instance.
 
 2.  **Configure `PDF2MD2Vector` Workflow**:
-    *   **Update HTTP Request URL**: Find the **"Submit to Python API"** node and change the URL to the IP address and port of your FastAPI OCR service (from Step 2).
+    *   **Update HTTP Request URL**: Find the **"Submit to Python API"** node and change the URL to the IP address and port of your FastAPI OCR service (from Step 3).
     *   **Set up Credentials**:
         *   **Postgres PGVector Store**: Configure your Postgres (pgvector) database credentials.
         *   **Embeddings OpenAI**: Configure your OpenAI API credentials.
