@@ -49,27 +49,26 @@ Next, create the necessary tables for the RAG pipeline, record manager, and chat
 -- Create the table for storing vector embeddings
 -- The vector dimension (1536) is for OpenAI's text-embedding-ada-002 model.
 -- If you use a different embedding model, update the dimension accordingly.
-CREATE TABLE IF NOT EXISTS n8n_kb_vectors (
-    id SERIAL PRIMARY KEY,
-    content TEXT,
-    metadata JSONB,
-    embedding VECTOR(1536)
-);
+CREATE TABLE IF NOT EXISTS n8n_kb_vectors
+(
+    id uuid NOT NULL DEFAULT gen_random_uuid(),
+    text text COLLATE pg_catalog."default",
+    metadata jsonb,
+    embedding vector,
+    CONSTRAINT n8n_kb_vectors_pkey PRIMARY KEY (id)
+)
+
 
 -- Create the table for the record manager to track processed files
-CREATE TABLE IF NOT EXISTS record_manager (
-    id SERIAL PRIMARY KEY,
-    filename TEXT NOT NULL UNIQUE,
-    hash TEXT NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
+CREATE TABLE IF NOT EXISTS record_manager
+(
+    id integer NOT NULL DEFAULT nextval('record_manager_id_seq'::regclass),
+    create_dt timestamp with time zone DEFAULT now(),
+    filename text COLLATE pg_catalog."default",
+    hash text COLLATE pg_catalog."default",
+    CONSTRAINT record_manager_pkey PRIMARY KEY (id)
+)
 
--- Create the table for storing n8n chat history
-CREATE TABLE IF NOT EXISTS n8n_chat_histories (
-    id SERIAL PRIMARY KEY,
-    session_id VARCHAR(255) NOT NULL,
-    message JSONB NOT NULL
-);
 ```
 
 After running these commands, make sure your n8n Postgres credentials have the necessary permissions to access and modify these tables.
